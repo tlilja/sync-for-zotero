@@ -228,6 +228,11 @@ function isSiteHomeUrl(url, config) {
   try {
     const parsed = new URL(String(url || ""));
     const expected = new URL(config.homeUrl);
+    if (config.siteId === "gemini") {
+      return shared.isGeminiHomeUrl
+        ? shared.isGeminiHomeUrl(url)
+        : (parsed.origin === expected.origin && /^(?:\/u\/\d+)?(?:\/app)?\/?$/.test(parsed.pathname));
+    }
     const parsedPath = parsed.pathname.replace(/\/+$/, "") || "/";
     const expectedPath = expected.pathname.replace(/\/+$/, "") || "/";
     return parsed.origin === expected.origin && parsedPath === expectedPath;

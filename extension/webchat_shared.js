@@ -908,6 +908,16 @@
     return normalized.length > 1 && !isPlaceholderAssistantText(normalized);
   }
 
+  function isGeminiHomeUrl(url) {
+    try {
+      const parsed = new URL(String(url || ""));
+      if (parsed.origin !== "https://gemini.google.com" || parsed.username || parsed.password) return false;
+      return /^(?:\/u\/\d+)?(?:\/app)?\/?$/.test(parsed.pathname);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function normalizeConversationUrl(url) {
     const raw = String(url || "").trim();
     if (!raw) return "";
@@ -916,6 +926,9 @@
       const parsed = new URL(raw);
       const geminiUrl = normalizeGeminiConversationUrl(raw);
       if (geminiUrl) return geminiUrl;
+      if (isGeminiHomeUrl(raw)) {
+        return "https://gemini.google.com/app";
+      }
       if (parsed.hostname.toLowerCase() === "chatgpt.com") {
         const match = parsed.pathname.match(/^\/c\/([^/?#]+)/);
         if (match) return `${parsed.origin}/c/${match[1]}`;
@@ -929,7 +942,7 @@
     try {
       const parsed = new URL(String(url || ""));
       if (parsed.origin !== "https://gemini.google.com" || parsed.username || parsed.password) return null;
-      const match = parsed.pathname.match(/^\/app\/([a-f0-9]{16})\/?$/);
+      const match = parsed.pathname.match(/^(?:\/u\/\d+)?\/app\/(?:c\/)?([a-f0-9]{16})\/?$/);
       return match ? `https://gemini.google.com/app/${match[1]}` : null;
     } catch (_) { return null; }
   }
@@ -1571,6 +1584,7 @@
     normalizeComposerText,
     normalizeConversationUrl,
     normalizeGeminiConversationUrl,
+    isGeminiHomeUrl,
     resolveExpectedConversationBinding,
     postPhaseAndWaitForAck,
     retryRecoverableContentScriptMessage,

@@ -6,7 +6,20 @@
       const composerSelector = '.ql-editor[role="textbox"][contenteditable="true"]';
       const inputRoot = () => document.querySelector(composerSelector)?.closest("input-container") || document.querySelector("input-container");
       const iconButton = (icon) => {
-        const button = inputRoot()?.querySelector(`mat-icon[fonticon="${icon}"]`)?.closest("button");
+        const root = inputRoot();
+        if (!root) return null;
+        let button = root.querySelector(`mat-icon[fonticon="${icon}"]`)?.closest("button");
+        if (!button) {
+          const matIcons = Array.from(root.querySelectorAll("mat-icon, [class*='icon']"));
+          const match = matIcons.find((el) => el.textContent.trim() === icon || el.getAttribute("fonticon") === icon || el.getAttribute("data-mat-icon-name") === icon);
+          button = match?.closest("button");
+        }
+        if (!button && icon === "arrow_upward") {
+          button = root.querySelector('button[aria-label*="Send" i], button.send-button');
+        }
+        if (!button && icon === "plus") {
+          button = root.querySelector('button[aria-label*="Upload" i], button[aria-label*="Add" i], button[aria-label*="Attach" i]');
+        }
         return button && isVisibleElement(button) ? button : null;
       };
       const messageRole = (node) => node?.localName === "user-query" ? "user" : node?.localName === "model-response" ? "assistant" : null;

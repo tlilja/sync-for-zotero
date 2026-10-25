@@ -3278,7 +3278,9 @@ async function streamResponseSnapshots(
   const assertTrackedConversation = (transcript) => {
     if (SITE_ADAPTER?.siteId !== "gemini") return;
     const chatUrl = shared.normalizeGeminiConversationUrl(transcript.chatUrl);
-    const isInitialHome = /^https:\/\/gemini\.google\.com\/app\/?(?:[?#]|$)/.test(transcript.chatUrl || "");
+    const isInitialHome = shared.isGeminiHomeUrl
+      ? shared.isGeminiHomeUrl(transcript.chatUrl)
+      : /^https:\/\/gemini\.google\.com\/(?:u\/\d+\/)?app\/?(?:[?#]|$)/.test(transcript.chatUrl || "");
     if ((pinnedGeminiChatUrl && chatUrl !== pinnedGeminiChatUrl) || (!chatUrl && !isInitialHome)) {
       throw new Error("Gemini conversation changed while tracking the submitted turn.");
     }
@@ -4643,7 +4645,7 @@ function simpleHash(text) {
 
 function getCurrentChatUrl() {
   return SITE_ADAPTER?.siteId === "gemini"
-    ? shared.normalizeGeminiConversationUrl(window.location.href) || window.location.href
+    ? shared.normalizeConversationUrl(window.location.href) || window.location.href
     : window.location.href;
 }
 
@@ -6127,7 +6129,9 @@ function assertSubmissionConversation(message) {
   }
   if (SITE_ADAPTER.siteId === "gemini") {
     const url = new URL(window.location.href);
-    const home = url.origin === "https://gemini.google.com" && /^\/app\/?$/.test(url.pathname) && !url.username && !url.password;
+    const home = shared.isGeminiHomeUrl
+      ? shared.isGeminiHomeUrl(url.href)
+      : (url.origin === "https://gemini.google.com" && /^(?:\/u\/\d+)?\/app\/?$/.test(url.pathname) && !url.username && !url.password);
     if (!home && !shared.normalizeGeminiConversationUrl(url.href)) throw new Error("Invalid Gemini conversation URL.");
     if (message.forceNewChat && (!home || extractConversationTranscript().count > 0)) {
       throw new Error("Gemini did not confirm a fresh empty conversation.");
