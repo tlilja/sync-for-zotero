@@ -4,8 +4,9 @@ import vm from "node:vm";
 import { createRequire } from "node:module";
 import test from "node:test";
 
+import { parseHTML } from "linkedom";
+
 const require = createRequire(import.meta.url);
-const { parseHTML } = require("linkedom");
 const shared = require("../extension/webchat_shared.js");
 const read = (name) => fs.readFileSync(new URL(name, import.meta.url), "utf8");
 const contentSource = read("../extension/content_script.js");
@@ -199,6 +200,29 @@ test("Gemini URL normalization strips transient parameters only on exact HTTPS c
   assert.throws(() => shared.resolveExpectedConversationBinding({ expected_chat_url: chatUrl, expected_chat_id: "aaaaaaaaaaaaaaaa" }, "gemini"), /binding|match/i);
   assert.deepEqual(shared.resolveExpectedConversationBinding({ expected_chat_url: chatUrl, expected_chat_id: "d11114e59cd9e350" }, "gemini"), { chatUrl, chatId: "d11114e59cd9e350" });
   assert.deepEqual(shared.resolveExpectedConversationBinding({ force_new_chat: true, expected_chat_url: chatUrl }, "gemini"), { chatUrl: null, chatId: null });
+});
+
+test("Gemini home URL normalization accepts locale query parameters and multi-account prefixes", () => {
+  assert.equal(shared.normalizeConversationUrl("https://gemini.google.com/app?hl=en_GB"), "https://gemini.google.com/app");
+  assert.equal(shared.normalizeConversationUrl("https://gemini.google.com/u/0/app?hl=en_GB"), "https://gemini.google.com/app");
+  assert.equal(shared.normalizeConversationUrl("https://gemini.google.com/"), "https://gemini.google.com/app");
+  assert.equal(shared.normalizeConversationUrl("https://gemini.google.com/app"), "https://gemini.google.com/app");
+  assert.equal(shared.conversationUrlsMatch("https://gemini.google.com/app?hl=en_GB", "https://gemini.google.com/app"), true);
+  assert.equal(shared.conversationUrlsMatch("https://gemini.google.com/u/0/app", "https://gemini.google.com/app"), true);
+  assert.equal(shared.isGeminiHomeUrl("https://gemini.google.com/app?hl=en_GB"), true);
+  assert.equal(shared.isGeminiHomeUrl("https://gemini.google.com/u/0/app"), true);
+  assert.equal(shared.isGeminiHomeUrl(chatUrl), false);
+});
+
+test("background isSiteHomeUrl recognizes Gemini home variants", () => {
+  const start = backgroundSource.indexOf("const SITE_CONFIGS =");
+  const end = backgroundSource.indexOf("function findSiteHomeTab(", start);
+  const api = vm.runInNewContext(`${backgroundSource.slice(start, end)}; ({ isSiteHomeUrl, SITE_CONFIGS })`, { URL, shared });
+  const geminiConfig = api.SITE_CONFIGS.gemini;
+  assert.equal(api.isSiteHomeUrl("https://gemini.google.com/app?hl=en_GB", geminiConfig), true);
+  assert.equal(api.isSiteHomeUrl("https://gemini.google.com/u/0/app", geminiConfig), true);
+  assert.equal(api.isSiteHomeUrl("https://gemini.google.com/", geminiConfig), true);
+  assert.equal(api.isSiteHomeUrl(chatUrl, geminiConfig), false);
 });
 
 test("routing rejects unknown targets and lookalike hosts", () => {

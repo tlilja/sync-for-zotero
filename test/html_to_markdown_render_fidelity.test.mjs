@@ -6,8 +6,9 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
+import { parseHTML } from "linkedom";
+
 const require = createRequire(import.meta.url);
-const { parseHTML } = require("linkedom");
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const contentScriptSource = fs.readFileSync(

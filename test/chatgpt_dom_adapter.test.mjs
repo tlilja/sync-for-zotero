@@ -4,8 +4,9 @@ import vm from "node:vm";
 import { createRequire } from "node:module";
 import test from "node:test";
 
+import { parseHTML } from "linkedom";
+
 const require = createRequire(import.meta.url);
-const { parseHTML } = require("linkedom");
 const shared = require("../extension/webchat_shared.js");
 const read = (name) => fs.readFileSync(new URL(name, import.meta.url), "utf8");
 const contentSource = read("../extension/content_script.js");
